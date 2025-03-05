@@ -3051,3 +3051,188 @@ section[id] {
 .tech-icon:hover::after {
     width: 80%;
 }
+/* Correction du problème de défilement sur mobile */
+
+/* Empêcher les débordements horizontaux et le défilement automatique */
+html, body {
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+/* Corriger les conteneurs principaux pour éviter le défilement horizontal */
+.pages-container {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    overflow-y: auto; /* Permettre uniquement le défilement vertical */
+    padding-top: var(--nav-height);
+    position: relative;
+    scroll-behavior: smooth;
+}
+
+.page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    min-height: 100vh;
+    height: auto;
+    padding: 2rem 1rem; /* Réduire le padding horizontal sur mobile */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-content {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    overflow-x: hidden;
+}
+
+/* Corriger le comportement des projets pour éviter les débordements */
+.projects-grid {
+    width: 100%;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.project-card {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Empêcher les animations et transformations qui causent des débordements */
+@media (max-width: 768px) {
+    .project-card:hover,
+    .project-card:active {
+        transform: none;
+    }
+
+    .project-card::after,
+    .project-card::before {
+        display: none;
+    }
+
+    .challenge-card:hover,
+    .tech-icon:hover,
+    .architecture-layer:hover {
+        transform: none;
+    }
+
+    .view-details {
+        opacity: 1;
+        transform: none;
+        position: relative;
+        bottom: 0;
+        right: 0;
+        text-align: right;
+        margin-top: 1rem;
+    }
+
+    /* Ajuster la modale pour mobile */
+    .modal-content {
+        width: 95%;
+        height: auto;
+        max-height: 85vh;
+        margin: 5vh auto;
+        padding: 1rem;
+    }
+
+    .project-detail {
+        padding: 1rem;
+    }
+
+    .project-image-carousel {
+        width: 100%;
+        max-width: 100%;
+        height: 220px;
+    }
+
+    /* Désactiver les animations problématiques sur mobile */
+    .testing-metric::before,
+    .challenge-card::after,
+    .project-card::after,
+    .architecture-layer {
+        animation: none;
+        transform: none;
+        opacity: 1;
+    }
+
+    /* Ajuster les grilles pour éviter les débordements */
+    .challenges-section,
+    .testing-section,
+    .competences-grid {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    /* Ajuster les éléments flexibles */
+    .tech-icons {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+    }
+}
+
+/* Correction spécifique pour les petits appareils */
+@media (max-width: 480px) {
+    .page {
+        padding: 1rem 0.5rem;
+    }
+
+    .page-content {
+        padding: 0.5rem;
+    }
+
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .project-card {
+        padding: 1rem;
+    }
+
+    /* Éliminer les espaces négatifs et les transformations */
+    .skill-tag:hover,
+    .tech-icon:hover img,
+    .carousel-btn:hover {
+        transform: none;
+    }
+
+    /* Ajuster les sections qui peuvent déborder */
+    .project-image-carousel {
+        height: 180px;
+        margin: 0;
+    }
+
+    .carousel-slide img {
+        object-fit: contain;
+    }
+
+    /* Améliorer la vitesse de défilement en désactivant les effets lourds */
+    .particles-bg,
+    .portfolio-gradient::after,
+    .modal-content {
+        animation: none;
+    }
+}
+
+/* Fix pour le défilement de la modale */
+.modal {
+    -webkit-overflow-scrolling: touch; /* Pour améliorer le défilement sur iOS */
+}
+
+.modal-content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
