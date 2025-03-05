@@ -3219,7 +3219,6 @@ html, body {
         object-fit: contain;
     }
 
-    /* Améliorer la vitesse de défilement en désactivant les effets lourds */
     .particles-bg,
     .portfolio-gradient::after,
     .modal-content {
