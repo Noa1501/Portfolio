@@ -7,8 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const topNav = document.querySelector('.top-nav');
     
+    // Variable pour éviter les défilements automatiques inattendus
+    let isScrolling = false;
+    let lastScrollTop = 0;
+    let scrollTimeout;
+    
     // Fonction pour mettre à jour la navigation active sans forcer le défilement
     function updateNavigation() {
+        // Ne pas mettre à jour pendant qu'un défilement programmé est en cours
+        if (isScrolling) return;
+        
         // Obtenir la position actuelle du défilement
         const currentPosition = pagesContainer.scrollTop;
         const windowHeight = window.innerHeight;
@@ -57,12 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Fonction pour le défilement fluide
+    // Fonction pour le défilement fluide avec protections
     function smoothScroll(targetId) {
         const targetElement = document.getElementById(targetId);
         if (!targetElement) return;
         
+        // Empêcher les défilements trop rapprochés
+        if (isScrolling) return;
+        
         const targetPosition = targetElement.offsetTop;
+        
+        // Marquer qu'un défilement est en cours
+        isScrolling = true;
         
         // Faire défiler la page vers la cible
         pagesContainer.scrollTo({
@@ -70,10 +84,20 @@ document.addEventListener('DOMContentLoaded', () => {
             behavior: 'smooth'
         });
         
+        // Restaurer après le défilement
+        setTimeout(() => {
+            isScrolling = false;
+        }, 1000); // Une seconde pour laisser le défilement se terminer
+        
         // Fermer le menu mobile si ouvert
         if (topNav.classList.contains('menu-open')) {
             topNav.classList.remove('menu-open');
         }
+    }
+    
+    // Fonction pour déterminer si l'utilisateur est sur un appareil mobile
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     }
     
     // Ajouter les écouteurs d'événements pour la navigation latérale
@@ -94,10 +118,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Écouteur d'événement pour le défilement
+    // Écouteur d'événement pour le défilement avec debounce
     pagesContainer.addEventListener('scroll', () => {
-        // Utiliser requestAnimationFrame pour optimiser les performances
-        window.requestAnimationFrame(updateNavigation);
+        // Stocker la position de défilement pour détecter la direction
+        const currentScrollTop = pagesContainer.scrollTop;
+        
+        // Annuler le callback précédent si le défilement continue
+        clearTimeout(scrollTimeout);
+        
+        // Attendre que le défilement s'arrête avant de mettre à jour la navigation
+        scrollTimeout = setTimeout(() => {
+            // Ne pas mettre à jour si un défilement programmé est en cours
+            if (!isScrolling) {
+                window.requestAnimationFrame(updateNavigation);
+            }
+            lastScrollTop = currentScrollTop;
+        }, 100);
     });
     
     // Gestion du menu mobile
@@ -116,8 +152,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Gestion des touches clavier (flèches haut/bas)
+    // Gestion des touches clavier (flèches haut/bas) uniquement sur desktop
     document.addEventListener('keydown', (e) => {
+        // Désactiver la navigation au clavier sur mobile
+        if (isMobileDevice()) return;
+        
         // Trouver la section active actuelle
         const activeLink = document.querySelector('.nav-link.active');
         if (!activeLink) return;
@@ -143,41 +182,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Support des touches de navigation sur appareil mobile (swipe)
+    // Support des touches de navigation sur appareil mobile (swipe) avec sécurité
     let touchStartY = 0;
     let touchEndY = 0;
+    let touchStartTime = 0;
+    let touchEndTime = 0;
+    let isSwiping = false;
     
-    pagesContainer.addEventListener('touchstart', (e) => {
-        touchStartY = e.changedTouches[0].screenY;
-    }, { passive: true });
+    // Désactiver complètement les swipes sur mobile si le problème persiste
+    const enableSwipeNavigation = false;
     
-    pagesContainer.addEventListener('touchend', (e) => {
-        touchEndY = e.changedTouches[0].screenY;
-        
-        // Calculer la distance du swipe
-        const swipeDistance = touchEndY - touchStartY;
-        
-        // Ne réagir qu'aux swipes significatifs et si on n'est pas en train de faire défiler un élément qui a son propre défilement
-        if (Math.abs(swipeDistance) > 100 && !e.target.closest('.scrollable')) {
-            const activeLink = document.querySelector('.nav-link.active');
-            if (!activeLink) return;
+    if (enableSwipeNavigation) {
+        pagesContainer.addEventListener('touchstart', (e) => {
+            // Vérifier si on n'est pas en train d'interagir avec un élément scrollable
+            if (e.target.closest('.modal-content') || e.target.closest('.scrollable')) return;
             
-            const activeIndex = Array.from(topNavLinks).findIndex(link => link.classList.contains('active'));
+            touchStartY = e.changedTouches[0].screenY;
+            touchStartTime = new Date().getTime();
+            isSwiping = true;
+        }, { passive: true });
+        
+        pagesContainer.addEventListener('touchmove', (e) => {
+            if (!isSwiping) return;
             
-            if (swipeDistance > 0 && activeIndex > 0) {
-                // Swipe vers le bas = section précédente
-                const targetId = topNavLinks[activeIndex - 1].getAttribute('href').substring(1);
-                smoothScroll(targetId);
-            } else if (swipeDistance < 0 && activeIndex < topNavLinks.length - 1) {
-                // Swipe vers le haut = section suivante
-                const targetId = topNavLinks[activeIndex + 1].getAttribute('href').substring(1);
-                smoothScroll(targetId);
+            // Si on est dans un élément qui a son propre défilement, annuler le swipe
+            if (e.target.closest('.modal-content') || e.target.closest('.scrollable')) {
+                isSwiping = false;
             }
-        }
-    }, { passive: true });
+        }, { passive: true });
+        
+        pagesContainer.addEventListener('touchend', (e) => {
+            if (!isSwiping) return;
+            
+            touchEndY = e.changedTouches[0].screenY;
+            touchEndTime = new Date().getTime();
+            
+            // Calculer la distance et la vitesse du swipe
+            const swipeDistance = touchEndY - touchStartY;
+            const swipeTime = touchEndTime - touchStartTime;
+            const swipeVelocity = Math.abs(swipeDistance) / swipeTime;
+            
+            // Ne réagir qu'aux swipes significatifs, rapides, et si on n'est pas en train de faire défiler
+            if (Math.abs(swipeDistance) > 100 && swipeVelocity > 0.3 && !isScrolling) {
+                const activeLink = document.querySelector('.nav-link.active');
+                if (!activeLink) return;
+                
+                const activeIndex = Array.from(topNavLinks).findIndex(link => link.classList.contains('active'));
+                
+                if (swipeDistance > 0 && activeIndex > 0) {
+                    // Swipe vers le bas = section précédente
+                    const targetId = topNavLinks[activeIndex - 1].getAttribute('href').substring(1);
+                    smoothScroll(targetId);
+                } else if (swipeDistance < 0 && activeIndex < topNavLinks.length - 1) {
+                    // Swipe vers le haut = section suivante
+                    const targetId = topNavLinks[activeIndex + 1].getAttribute('href').substring(1);
+                    smoothScroll(targetId);
+                }
+            }
+            
+            isSwiping = false;
+        }, { passive: true });
+    }
     
-    // Initialisation
-    updateNavigation();
+    // Initialisation avec un délai pour s'assurer que tout est chargé
+    setTimeout(updateNavigation, 300);
     
     // Gestion du redimensionnement
     window.addEventListener('resize', () => {
